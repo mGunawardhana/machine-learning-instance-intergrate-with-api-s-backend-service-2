@@ -1,0 +1,4 @@
+matplotlib~=3.8.2
+pandas~=2.1.4
+seaborn~=0.13.1
+fastapi~=0.104.1
