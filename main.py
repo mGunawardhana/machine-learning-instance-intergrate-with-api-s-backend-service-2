@@ -1,11 +1,11 @@
+from fastapi import FastAPI, HTTPException
+from starlette.middleware.cors import CORSMiddleware
+from loguru import logger
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 from io import BytesIO
 import base64
-from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
-from loguru import logger
 
 app = FastAPI()
 
@@ -21,14 +21,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-data = pd.read_csv("uber.csv")
-data["Date/Time"] = data["Date/Time"].map(pd.to_datetime)
+try:
+    data = pd.read_csv("uber.csv")
+    data["Date/Time"] = pd.to_datetime(data["Date/Time"])
+    data["Day"] = data["Date/Time"].dt.day
+    data["Weekday"] = data["Date/Time"].dt.weekday
+    data["Hour"] = data["Date/Time"].dt.hour
+except Exception as e:
+    logger.error(f"Error loading data: {str(e)}")
+    raise SystemExit(1)
 
-# Extract day, weekday, and hour information from the timestamp
-data["Day"] = data["Date/Time"].apply(lambda x: x.day)
-data["Weekday"] = data["Date/Time"].apply(lambda x: x.weekday())
-data["Hour"] = data["Date/Time"].apply(lambda x: x.hour)
-
+def save_and_encode_plot(figure, filename):
+    try:
+        img_buffer = BytesIO()
+        figure.savefig(img_buffer, format="png")
+        img_buffer.seek(0)
+        img_str = base64.b64encode(img_buffer.read()).decode()
+        plt.close()
+        return {"image_data": img_str}
+    except Exception as e:
+        logger.error(f"Error saving/encoding plot {filename}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/")
 async def root():
@@ -40,7 +53,6 @@ async def get_level_one_type_optimised_data():
     logger.info("Get data endpoint accessed")
     return {"message": data.head().to_dict(orient="records")}
 
-
 @app.get("/level-one/optimised/data/visualise/day")
 async def get_level_one_type_optimised_data_visualise_day():
     try:
@@ -49,19 +61,10 @@ async def get_level_one_type_optimised_data_visualise_day():
         plt.title("Distribution of Uber Trips Across Days")
         plt.xlabel("Day of the Month")
         plt.ylabel("Number of Trips")
-
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format="png")
-        img_buffer.seek(0)
-
-        img_str = base64.b64encode(img_buffer.read()).decode()
-        plt.close()
-
-        return {"image_data": img_str}
-    except Exception as e:
-        logger.error("Error: {}".format(e))
-        return {"message": "Error: {}".format(e)}
-
+        return save_and_encode_plot(plt, "visualise_day")
+    except Exception as exception:
+        logger.error(f"Error in visualize day endpoint: {str(exception)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/level-one/optimised/data/visualise/hour")
 async def get_level_one_type_optimised_data_visualise_hour():
@@ -71,19 +74,10 @@ async def get_level_one_type_optimised_data_visualise_hour():
         plt.title("Distribution of Uber Trips Across Hours")
         plt.xlabel("Hour of the Day")
         plt.ylabel("Number of Trips")
-
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format="png")
-        img_buffer.seek(0)
-
-        img_str = base64.b64encode(img_buffer.read()).decode()
-        plt.close()
-
-        return {"image_data": img_str}
-    except Exception as e:
-        logger.error("Error: {}".format(e))
-        return {"message": "Error: {}".format(e)}
-
+        return save_and_encode_plot(plt, "visualise_hour")
+    except Exception as exception:
+        logger.error(f"Error in visualize hour endpoint: {str(exception)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/level-one/optimised/data/visualise/weekday")
 async def get_level_one_type_optimised_data_visualise_weekday():
@@ -93,19 +87,10 @@ async def get_level_one_type_optimised_data_visualise_weekday():
         plt.title("Distribution of Uber Trips Across Weekdays")
         plt.xlabel("Weekday (0=Monday, 1=Tuesday, ..., 6=Sunday)")
         plt.ylabel("Number of Trips")
-
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format="png")
-        img_buffer.seek(0)
-
-        img_str = base64.b64encode(img_buffer.read()).decode()
-        plt.close()
-
-        return {"image_data": img_str}
-    except Exception as e:
-        logger.error("Error: {}".format(e))
-        return {"message": "Error: {}".format(e)}
-
+        return save_and_encode_plot(plt, "visualise_weekday")
+    except Exception as exception:
+        logger.error(f"Error in visualize weekday endpoint: {str(exception)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/level-one/optimised/data/visualise/bubble-map")
 async def get_level_one_type_optimised_data_visualise_bubble_map():
@@ -115,15 +100,7 @@ async def get_level_one_type_optimised_data_visualise_bubble_map():
         plt.title("Geographical Distribution of Uber Trips with Day-wise Bubbles")
         plt.xlabel("Longitude")
         plt.ylabel("Latitude")
-
-        img_buffer = BytesIO()
-        plt.savefig(img_buffer, format="png")
-        img_buffer.seek(0)
-
-        img_str = base64.b64encode(img_buffer.read()).decode()
-        plt.close()
-
-        return {"image_data": img_str}
-    except Exception as e:
-        logger.error("Error: {}".format(e))
-        return {"message": "Error: {}".format(e)}
+        return save_and_encode_plot(plt, "visualise_bubble_map")
+    except Exception as exception:
+        logger.error(f"Error in visualize bubble map endpoint: {str(exception)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
