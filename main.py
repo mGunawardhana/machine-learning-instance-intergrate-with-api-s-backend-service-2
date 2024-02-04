@@ -31,14 +31,14 @@ except Exception as e:
     logger.error(f"Error loading data: {str(e)}")
     raise SystemExit(1)
 
-def save_and_encode_plot(figure, filename):
+def save_and_encode_plot(figure, filename, max_val, min_val):
     try:
         img_buffer = BytesIO()
         figure.savefig(img_buffer, format="png")
         img_buffer.seek(0)
         img_str = base64.b64encode(img_buffer.read()).decode()
         plt.close()
-        return {"image_data": img_str}
+        return {"image_data": img_str, "max_val": int(max_val.item()), "min_val": int(min_val.item())}
     except Exception as e:
         logger.error(f"Error saving/encoding plot {filename}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -61,7 +61,10 @@ async def get_level_one_type_optimised_data_visualise_day():
         plt.title("Distribution of Uber Trips Across Days")
         plt.xlabel("Day of the Month")
         plt.ylabel("Number of Trips")
-        return save_and_encode_plot(plt, "visualise_day")
+        # plt.text(10, 1000, "This chart shows the distribution of Uber trips across different days of the month. The x-axis represents the day of the month and the y-axis represents the number of trips. The height of the bars indicates the number of trips made on that particular day.")
+        max_val = data["Day"].max()
+        min_val = data["Day"].min()
+        return save_and_encode_plot(plt, "visualise_day", max_val, min_val)
     except Exception as exception:
         logger.error(f"Error in visualize day endpoint: {str(exception)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -74,7 +77,9 @@ async def get_level_one_type_optimised_data_visualise_hour():
         plt.title("Distribution of Uber Trips Across Hours")
         plt.xlabel("Hour of the Day")
         plt.ylabel("Number of Trips")
-        return save_and_encode_plot(plt, "visualise_hour")
+        max_val = data["Hour"].max()
+        min_val = data["Hour"].min()
+        return save_and_encode_plot(plt, "visualise_hour", max_val, min_val)
     except Exception as exception:
         logger.error(f"Error in visualize hour endpoint: {str(exception)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -87,7 +92,9 @@ async def get_level_one_type_optimised_data_visualise_weekday():
         plt.title("Distribution of Uber Trips Across Weekdays")
         plt.xlabel("Weekday (0=Monday, 1=Tuesday, ..., 6=Sunday)")
         plt.ylabel("Number of Trips")
-        return save_and_encode_plot(plt, "visualise_weekday")
+        max_val = data["Weekday"].max()
+        min_val = data["Weekday"].min()
+        return save_and_encode_plot(plt, "visualise_weekday", max_val, min_val)
     except Exception as exception:
         logger.error(f"Error in visualize weekday endpoint: {str(exception)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -100,7 +107,10 @@ async def get_level_one_type_optimised_data_visualise_bubble_map():
         plt.title("Geographical Distribution of Uber Trips with Day-wise Bubbles")
         plt.xlabel("Longitude")
         plt.ylabel("Latitude")
-        return save_and_encode_plot(plt, "visualise_bubble_map")
+        # plt.text(-73.9, 40.7, "This chart shows the geographical distribution of Uber trips with day-wise bubbles. The x-axis represents the longitude and the y-axis represents the latitude. The size and color of the bubbles indicate the day of the month.")
+        max_val = data["Day"].max()
+        min_val = data["Day"].min()
+        return save_and_encode_plot(plt, "visualise_bubble_map", max_val, min_val)
     except Exception as exception:
         logger.error(f"Error in visualize bubble map endpoint: {str(exception)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
